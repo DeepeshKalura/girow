@@ -3,6 +3,7 @@ import subprocess
 import platform
 import os
 
+oldBranchName = "None"
 
 #! I will add all the factors in which are code can be created
 def get_operating_system():
@@ -69,12 +70,12 @@ def activate_project():
         subprocess.call(['.venv/Scripts/activate'])
 
 
-@click.group()
-def cli():
-    pass
+@click.group(help="CLI tool to manage learning branches in your python project.")
+def app():
+   pass
 
-@click.command()
-@click.option('--name', prompt='Enter the branch name', help='The name of the new branch you want to learn for this project')
+@click.command(help="Create a new learning branch, install Jupyter Notebook, and create a new Jupyter Notebook file.")
+@click.option('--name', '-n' ,prompt='Enter the branch to create', help='The name of the new branch you want to learn for this project')
 def learn_more_about_your_project(newBranchName: str):
     """
     Create a new branch, install Jupyter Notebook, and create a new Jupyter Notebook file.
@@ -85,12 +86,15 @@ def learn_more_about_your_project(newBranchName: str):
     Returns:
         None
     """
+    global oldBranchName
+    oldBranchName = subprocess.run(["git", "branch", "--show-current"], capture_output=True, text=True).stdout.strip()
     subprocess.run(["git", "checkout", "-b", "learn"+newBranchName])
     subprocess.run(["pip", "install", "jupyter", "notebook"])
     subprocess.run(["touch", newBranchName+".ipynb"])
 
 
 @click.command()
+@click.option(help='Merge the changes from the learn branch to the main branch')
 def merge_the_learn_code():
     """
     Merge the changes from the current branch to the production branch.
@@ -102,24 +106,33 @@ def merge_the_learn_code():
 
     If the current branch does not contain the word "learn" in its name, it displays a message indicating that it is not a learning branch.
     """
+    global oldBranchName
+    if(oldBranchName == "None"):
+        click.echo("You are not in learn branch")
+        return
     currentBranch = subprocess.run(["git", "branch", "--show-current"], capture_output=True, text=True).stdout.strip()
     if("learn" in currentBranch):
         currentBranch = currentBranch[5:]
         subprocess.run(["pip", "uninstall", "jupyter", "notebook"])
         subprocess.run(["rm", currentBranch+".ipynb"])
-        subprocess.run(["git", "checkout", "production"])
-        subprocess.run(["git", "pull", "origin", "production"])
+        try:
+            subprocess.run(["git", "checkout", oldBranchName])
+        
+        except Exception as e:
+            click.echo(str(e))
+            
+        subprocess.run(["git", "pull", "origin", oldBranchName])
 
         subprocess.run(["git", "merge", "learn"+currentBranch])
         subprocess.run(["git", "branch", "-d", "learn"+currentBranch])
-
+        oldBranchName = "None"
     else:
         click.echo("You are not in a learning branch")
     
 
-cli.add_command(learn_more_about_your_project)
-cli.add_command(merge_the_learn_code)
+app.add_command(learn_more_about_your_project)
+app.add_command(merge_the_learn_code)
 
 
 if __name__ == '__main__':
-    cli()
+    app()
