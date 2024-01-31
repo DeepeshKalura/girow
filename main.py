@@ -1,16 +1,30 @@
 import click
 import subprocess
 
-oldBranchName = "None"
-
 
 @click.group(help="CLI tool to manage learning branches in your python project.")
 def app():
    pass
 
-@click.command(help="Create a new learning branch, install Jupyter Notebook, and create a new Jupyter Notebook file.")
+def save_old_branch_name(name):
+    """Save the old branch name to a file."""
+    with open('old_branch_name.txt', 'w') as f:
+        f.write(name)
+
+def load_old_branch_name():
+    """Load the old branch name from a file."""
+    try:
+        with open('old_branch_name.txt', 'r') as f:
+            name = f.read().strip()
+            subprocess.run(["rm", "old_branch_name.txt"])
+            return name
+    except FileNotFoundError:
+        return None
+
+
+@click.command(help="Create a new learning branch, from main branch.")
 @click.option('--name', '-n' ,prompt='Enter the branch to create', help='The name of the new branch you want to learn for this project')
-def learn_more_about_your_project(newBranchName: str):
+def sl(name: str):
     """
     Create a new branch, install Jupyter Notebook, and create a new Jupyter Notebook file.
 
@@ -20,16 +34,16 @@ def learn_more_about_your_project(newBranchName: str):
     Returns:
         None
     """
-    global oldBranchName
+    
     oldBranchName = subprocess.run(["git", "branch", "--show-current"], capture_output=True, text=True).stdout.strip()
-    subprocess.run(["git", "checkout", "-b", "learn"+newBranchName])
+    save_old_branch_name(oldBranchName)
+    subprocess.run(["git", "checkout", "-b", "learn"+name])
     subprocess.run(["pip", "install", "jupyter", "notebook"])
-    subprocess.run(["touch", newBranchName+".ipynb"])
+    subprocess.run(["touch", name+".ipynb"])
 
 
-@click.command()
-@click.option(help='Merge the changes from the learn branch to the main branch')
-def merge_the_learn_code():
+@click.command(help='Merge the changes from the learn branch to the main branch')
+def ml():
     """
     Merge the changes from the current branch to the production branch.
 
@@ -40,14 +54,14 @@ def merge_the_learn_code():
 
     If the current branch does not contain the word "learn" in its name, it displays a message indicating that it is not a learning branch.
     """
-    global oldBranchName
+    oldBranchName = load_old_branch_name()
     if(oldBranchName == "None"):
         click.echo("You are not in learn branch")
         return
     currentBranch = subprocess.run(["git", "branch", "--show-current"], capture_output=True, text=True).stdout.strip()
     if("learn" in currentBranch):
         currentBranch = currentBranch[5:]
-        subprocess.run(["pip", "uninstall", "jupyter", "notebook"])
+        subprocess.run(["pip", "uninstall", "jupyter", "notebook", "-y"])
         subprocess.run(["rm", currentBranch+".ipynb"])
         try:
             subprocess.run(["git", "checkout", oldBranchName])
@@ -59,13 +73,12 @@ def merge_the_learn_code():
 
         subprocess.run(["git", "merge", "learn"+currentBranch])
         subprocess.run(["git", "branch", "-d", "learn"+currentBranch])
-        oldBranchName = "None"
     else:
         click.echo("You are not in a learning branch")
     
 
-app.add_command(learn_more_about_your_project)
-app.add_command(merge_the_learn_code)
+app.add_command(ml)
+app.add_command(sl)
 
 
 if __name__ == '__main__':
