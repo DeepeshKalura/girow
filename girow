@@ -61,7 +61,7 @@ def ml():
     currentBranch = subprocess.run(["git", "branch", "--show-current"], capture_output=True, text=True).stdout.strip()
     if("learn" in currentBranch):
         currentBranch = currentBranch[5:]
-        subprocess.run(["pip", "uninstall", "-r", "jypter.txt"])
+        subprocess.run(["pip", "uninstall", "-r", "jypter.txt", "-y"])
         subprocess.run(["rm", currentBranch+".ipynb"])
         try:
             subprocess.run(["git", "checkout", oldBranchName])
