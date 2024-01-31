@@ -2,7 +2,9 @@ import os
 import platform
 import subprocess
 
-#! I will add all the factors in which are code can be created
+#TODO: These are the code which will be factor my code can be break
+#! In future I will add this if somebody finds the error while using it
+
 def get_operating_system():
     """Get the name of the operating system"""
     os_name = platform.system()
